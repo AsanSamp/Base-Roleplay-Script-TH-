@@ -1,0 +1,2 @@
+[13:26:33 05/30/20] [ERROR] CMySQLQuery::Execute[Query_LoadCharacter] - (error #1146) Table 'samp_base.characters' doesn't exist (Query: "SELECT * FROM characters WHERE CHAR_Name = 'Admin'")
+[13:28:03 05/30/20] [ERROR] CMySQLQuery::Execute[Query_LoadCharacter] - (error #1064) You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'character WHERE CHAR_Name = 'Admin'' at line 1 (Query: "SELECT * FROM character WHERE CHAR_Name = 'Admin'")
