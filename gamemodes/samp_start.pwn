@@ -20,6 +20,8 @@
 #include <foreach>
 #include <sscanf2>
 #include <evi>
+#define  CE_AUTO
+#include <CEFix>
 
 #define function:%0(%1) forward %0(%1); public %0(%1)
 
@@ -307,6 +309,8 @@ enum P_ACCOUNT_DATA
 	pScrambleFailed,
 	
 	bool:pPoliceDuty,
+	bool:pSheriffDuty,
+	bool:pDocDuty,
 	bool:pMedicDuty,
 	
 	pTimeplayed,
@@ -1771,7 +1775,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 				return ShowPlayerDialog(playerid, DIALOG_FACTION_NAME, DIALOG_STYLE_INPUT, "Faction Configuration", "ชื่อเฟคชั่นของคุณควรไม่เกิน 90 ตัวอักษร\n\nใส่ชื่อเฟคชั่นของคุณ:", "ตกลง", "<<"); 
 			
 			format(FactionInfo[PlayerInfo[playerid][pFaction]][eFactionName], 90, "%s", inputtext);
-			SendServerMessage(playerid, "Your factions name is now: \"%s\".", inputtext);
+			SendServerMessage(playerid, "ชื่อเฟคชั่นของคุณ: \"%s\".", inputtext);
 			
 			return ShowFactionConfig(playerid);
 		}
@@ -8585,80 +8589,268 @@ CMD:duty(playerid, params[])
 		
 	if(FactionInfo[PlayerInfo[playerid][pFaction]][eFactionType] != FACTION_TYPE_GOVERMENT)
 		return SendClientMessage(playerid, COLOR_RED, "ACCESS DENIED:{FFFFFF} คุณไม่ใช่หน่วยงานรัฐบาล"); 
-		
-	if(PlayerInfo[playerid][pPoliceDuty])
-		return SendErrorMessage(playerid, "คุณปติบัตรหน้าที่อยู่"); 
-		
-	if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
-		return SendErrorMessage(playerid, "คุณไม่ได้อยู่ใกล้ตู้ ล็อคเกอร์");
-		
-	PlayerInfo[playerid][pPoliceDuty] = true; 
-	
-	for(new i = 0; i < 4; i++)
-	{
-		playerWeaponsSave[playerid][i] = PlayerInfo[playerid][pWeapons][i];
-		playerWeaponsAmmoSave[playerid][i] = PlayerInfo[playerid][pWeaponsAmmo][i]; 
-	}
-	
-	SendPoliceMessage(COLOR_COP, "** HQ: %s %s ได้เริ่มปฏิบัตรหน้าที่แล้วตอนนี้**", ReturnFactionRank(playerid), ReturnName(playerid, 0));
-	SendClientMessage(playerid, COLOR_WHITE, "สิ่งที่คุณจะได้รับ: Spraycan, Nitestick, Desert Eagle (60), Health(100)");
-	
-	cmd_me(playerid, "หยิบตราประจำตัวออกมาจากตู้ล็อคเกอร์"); 
-	
-	SetPlayerHealth(playerid, 100);
-	SetPlayerArmour(playerid, 100);
-	
-	TakePlayerGuns(playerid);
-	
-	GivePlayerGun(playerid, 24, 100);
-	GivePlayerGun(playerid, 3, 1);
-	GivePlayerGun(playerid, 41, 350);
-	
-	if(!PlayerInfo[playerid][pAdminDuty])
-		SetPlayerColor(playerid, COLOR_COP);
 
-	return 1;
-}
-
-CMD:offduty(playerid, params[])
-{
-	if(!PlayerInfo[playerid][pFaction])
-		return SendErrorMessage(playerid, "คุณไม่ได้อยู่ในเฟคชั่น");
-		
-	if(FactionInfo[PlayerInfo[playerid][pFaction]][eFactionType] != FACTION_TYPE_GOVERMENT)
-		return SendClientMessage(playerid, COLOR_RED, "ACCESS DENIED:{FFFFFF} คุณไม่ใช่หน่วยงานรัฐบาล"); 
-		
-	if(!PlayerInfo[playerid][pPoliceDuty])
-		return SendErrorMessage(playerid, "คุณปฏิบัตรหน้าที่อยู่แล้ว"); 
-		
-	if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
-		return SendErrorMessage(playerid, "คุณไม่ได้อยู่ใกล้ล็อคเกอร์");
-		
-	PlayerInfo[playerid][pPoliceDuty] = false;
-	
-	ResetPlayerWeapons(playerid); 
-	
-	for(new i = 0; i < 4; i++)
+	if(ReturnFactionJob(playerid) == POLICE)
 	{
-		PlayerInfo[playerid][pWeapons][i] = 0; PlayerInfo[playerid][pWeaponsAmmo][i] = 0;
-		
-		if(playerWeaponsSave[playerid][i])
-			GivePlayerGun(playerid, playerWeaponsSave[playerid][i], playerWeaponsAmmoSave[playerid][i]);
+	    if(!PlayerInfo[playerid][pPoliceDuty])
+		{
+	    	if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
+				return SendErrorMessage(playerid, "คุณไม่ได้อยู่จุดล็อกเกอร์");
+
+			if(GetPlayerVirtualWorld(playerid) != FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawnWorld])
+				return SendErrorMessage(playerid, "คุณไม่ได้อยู่จุดล็อกเกอร์");
+
+			PlayerInfo[playerid][pPoliceDuty] = true;
+
+			for(new i = 0; i < 4; i++)
+			{
+				playerWeaponsSave[playerid][i] = PlayerInfo[playerid][pWeapons][i];
+				playerWeaponsAmmoSave[playerid][i] = PlayerInfo[playerid][pWeaponsAmmo][i];
+			}
+
+			SendPoliceMessage(0x8D8DFFFF, "HQ: %s %s ได้เริ่มปฏิบัตหน้าที่แล้วตอนนี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			SendClientMessage(playerid, COLOR_WHITE, "สิ่งที่คุณจะได้รับ: Spraycan, Nitestick, Desert Eagle (60), Health(100)");
+
+			cmd_me(playerid, "ได้หยิบตราประจำตัวออกมาจากตู้ล็อกเกอร์");
+
+			SetPlayerHealth(playerid, 100);
+			SetPlayerArmour(playerid, 100);
+
+			TakePlayerGuns(playerid);
+
+			GivePlayerWeapon(playerid, 24, 100);
+			GivePlayerWeapon(playerid, 3, 1);
+			GivePlayerWeapon(playerid, 41, 350);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+				SetPlayerColor(playerid, COLOR_COP);
+
+            return 1;
+		}
+
+		if(PlayerInfo[playerid][pPoliceDuty])
+		{
+		    PlayerInfo[playerid][pPoliceDuty] = false;
+
+			ResetPlayerWeapons(playerid);
+
+			for(new i = 0; i < 4; i++)
+			{
+				PlayerInfo[playerid][pWeapons][i] = 0; PlayerInfo[playerid][pWeaponsAmmo][i] = 0;
+
+				if(playerWeaponsSave[playerid][i])
+					GivePlayerGun(playerid, playerWeaponsSave[playerid][i], playerWeaponsAmmoSave[playerid][i]);
+			}
+
+			SendPoliceMessage(0x8D8DFFFF, " HQ: %s %s ได้ออกจากการปติบัตหน้าที่ในเวลานี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			cmd_me(playerid, "วางตราประจำตัวไว้ที่ล็อคเกอร์");
+
+			SetPlayerArmour(playerid, 0);
+			SetPlayerHealth(playerid, 100);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+			SetPlayerColor(playerid, COLOR_WHITE);
+
+			if(GetPlayerSkin(playerid) != PlayerInfo[playerid][pLastSkin])
+			SetPlayerSkin(playerid, PlayerInfo[playerid][pLastSkin]);
+
+			return 1;
+		}
 	}
-	
-	SendPoliceMessage(COLOR_COP, "** HQ: %s %s ได้ออกจากการปฏิบัตรหน้าที่แล้วตอนนี้ **", ReturnFactionRank(playerid), ReturnName(playerid, 0)); 
-	cmd_me(playerid, "วางตราประจำตัวไว้ที่ล็อคเกอร์"); 
-	
-	SetPlayerArmour(playerid, 0);
-	SetPlayerHealth(playerid, 100); 
-	
-	if(!PlayerInfo[playerid][pAdminDuty])
-		SetPlayerColor(playerid, COLOR_WHITE);
-	
-	if(GetPlayerSkin(playerid) != PlayerInfo[playerid][pLastSkin])
-		SetPlayerSkin(playerid, PlayerInfo[playerid][pLastSkin]); 
-		
-	return 1;
+	if(ReturnFactionJob(playerid) == SHERIFF)
+	{
+        if(!PlayerInfo[playerid][pSheriffDuty])
+        {
+            if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
+                return SendErrorMessage(playerid, "คุณไม่ได้อยู่จุดล็อกเกอร์");
+ 
+            PlayerInfo[playerid][pSheriffDuty] = true;
+ 
+            for(new i = 0; i < 4; i++)
+            {
+                playerWeaponsSave[playerid][i] = PlayerInfo[playerid][pWeapons][i];
+                playerWeaponsAmmoSave[playerid][i] = PlayerInfo[playerid][pWeaponsAmmo][i];
+            }
+ 
+            SendSheriffMessage(0x8D8DFFFF, "HQ: %s %s ได้เริ่มปฏิบัตหน้าที่แล้วตอนนี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+            SendClientMessage(playerid, COLOR_WHITE, "สิ่งที่คุณจะได้รับ: Spraycan, Nitestick, Desert Eagle (60), Health(100)");
+ 
+            cmd_me(playerid, "หยิบตราประจำตัวออกมาจากตู้ล็อกเกอร์");
+ 
+            SetPlayerHealth(playerid, 100);
+            SetPlayerArmour(playerid, 100);
+ 
+            TakePlayerGuns(playerid);
+ 
+            GivePlayerWeapon(playerid, 24, 100);
+            GivePlayerWeapon(playerid, 3, 1);
+            GivePlayerWeapon(playerid, 41, 350);
+ 
+            if(!PlayerInfo[playerid][pAdminDuty])
+                SetPlayerColor(playerid, COLOR_COP);
+ 
+            return 1;
+        }
+ 
+        if(PlayerInfo[playerid][pSheriffDuty])
+        {
+            PlayerInfo[playerid][pSheriffDuty] = false;
+ 
+            ResetPlayerWeapons(playerid);
+ 
+            for(new i = 0; i < 4; i++)
+            {
+                PlayerInfo[playerid][pWeapons][i] = 0; PlayerInfo[playerid][pWeaponsAmmo][i] = 0;
+ 
+                if(playerWeaponsSave[playerid][i])
+                    GivePlayerGun(playerid, playerWeaponsSave[playerid][i], playerWeaponsAmmoSave[playerid][i]);
+            }
+ 
+            SendPoliceMessage(0x8D8DFFFF, " HQ: %s %s ได้ออกจากการปติบัตหน้าที่ในเวลานี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+            cmd_me(playerid, "วางตราประจำตัวไว้ที่ล็อคเกอร์");
+ 
+            SetPlayerArmour(playerid, 0);
+            SetPlayerHealth(playerid, 100);
+ 
+            if(!PlayerInfo[playerid][pAdminDuty])
+            SetPlayerColor(playerid, COLOR_WHITE);
+ 
+            if(GetPlayerSkin(playerid) != PlayerInfo[playerid][pLastSkin])
+            SetPlayerSkin(playerid, PlayerInfo[playerid][pLastSkin]);
+ 
+            return 1;
+        }
+    }
+	if(ReturnFactionJob(playerid) == MEDIC)
+	{
+	    if(!PlayerInfo[playerid][pMedicDuty])
+		{
+	    	if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
+				return SendErrorMessage(playerid, "คุณไม่ได้อยู่จุดล็อกเกอร์");
+
+			PlayerInfo[playerid][pMedicDuty] = true;
+
+			for(new i = 0; i < 4; i++)
+			{
+				playerWeaponsSave[playerid][i] = PlayerInfo[playerid][pWeapons][i];
+				playerWeaponsAmmoSave[playerid][i] = PlayerInfo[playerid][pWeaponsAmmo][i];
+			}
+
+			SendMedicMessage(0xFF8282FF, "HQ: %s %s ได้เริ่มปฏิบัตหน้าที่แล้วตอนนี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			SendClientMessage(playerid, COLOR_WHITE, "สิ่งที่คุณจะได้รับ: ถังดับเพลิง");
+
+			cmd_me(playerid, "หยิบตราประจำตัวออกมาจากตู้ล็อกเกอร์");
+
+    		SetPlayerColor(playerid, 0xFF8282FF);
+			SetPlayerHealth(playerid, 100);
+			SetPlayerArmour(playerid, 100);
+
+			TakePlayerGuns(playerid);
+
+			GivePlayerWeapon(playerid, 42, 500);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+				SetPlayerColor(playerid, COLOR_PINK);
+
+            return 1;
+		}
+
+		if(PlayerInfo[playerid][pMedicDuty])
+		{
+		    PlayerInfo[playerid][pMedicDuty] = false;
+
+			ResetPlayerWeapons(playerid);
+
+			for(new i = 0; i < 4; i++)
+			{
+				PlayerInfo[playerid][pWeapons][i] = 0; PlayerInfo[playerid][pWeaponsAmmo][i] = 0;
+
+				if(playerWeaponsSave[playerid][i])
+					GivePlayerGun(playerid, playerWeaponsSave[playerid][i], playerWeaponsAmmoSave[playerid][i]);
+			}
+
+			SendMedicMessage(0xFF8282FF, " HQ: %s %s ได้ออกจากการปติบัตหน้าที่ในเวลานี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			cmd_me(playerid, "วางตราประจำตัวไว้ที่ล็อคเกอร์");
+
+			SetPlayerArmour(playerid, 0);
+			SetPlayerHealth(playerid, 100);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+			SetPlayerColor(playerid, COLOR_WHITE);
+
+			if(GetPlayerSkin(playerid) != PlayerInfo[playerid][pLastSkin])
+			SetPlayerSkin(playerid, PlayerInfo[playerid][pLastSkin]);
+
+			return 1;
+		}
+	}
+	if(ReturnFactionJob(playerid) == DOC)
+	{
+	    if(!PlayerInfo[playerid][pDocDuty])
+		{
+	    	if(!IsPlayerInRangeOfPoint(playerid, 5.0, FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][0], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][1], FactionInfo[PlayerInfo[playerid][pFaction]][eFactionSpawn][2]))
+				return SendErrorMessage(playerid, "คุณไม่ได้อยู่จุดล็อกเกอร์");
+
+			PlayerInfo[playerid][pDocDuty] = true;
+
+			for(new i = 0; i < 4; i++)
+			{
+				playerWeaponsSave[playerid][i] = PlayerInfo[playerid][pWeapons][i];
+				playerWeaponsAmmoSave[playerid][i] = PlayerInfo[playerid][pWeaponsAmmo][i];
+			}
+
+			SendDOCMessage(0xFF8282FF, "HQ: %s %s ได้เริ่มปฏิบัตหน้าที่แล้วตอนนี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			SendClientMessage(playerid, COLOR_WHITE, "สิ่งที่คุณจะได้รับ: ถังดับเพลิง");
+
+			cmd_me(playerid, "หยิบตราประจำตัวออกมาจากตู้ล็อกเกอร์");
+
+    		SetPlayerColor(playerid, 0xFF8282FF);
+			SetPlayerHealth(playerid, 100);
+			SetPlayerArmour(playerid, 100);
+
+			TakePlayerGuns(playerid);
+
+			GivePlayerWeapon(playerid, 25, 150);
+			GivePlayerWeapon(playerid, 24, 150);
+			GivePlayerWeapon(playerid, 3, 1);
+			GivePlayerWeapon(playerid, 41, 350);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+				SetPlayerColor(playerid, COLOR_PINK);
+
+            return 1;
+		}
+
+		if(PlayerInfo[playerid][pDocDuty])
+		{
+		    PlayerInfo[playerid][pDocDuty] = false;
+
+			ResetPlayerWeapons(playerid);
+
+			for(new i = 0; i < 4; i++)
+			{
+				PlayerInfo[playerid][pWeapons][i] = 0; PlayerInfo[playerid][pWeaponsAmmo][i] = 0;
+
+				if(playerWeaponsSave[playerid][i])
+					GivePlayerGun(playerid, playerWeaponsSave[playerid][i], playerWeaponsAmmoSave[playerid][i]);
+			}
+
+			SendDOCMessage(0xFF8282FF, " HQ: %s %s ได้ออกจากการปติบัตหน้าที่ในเวลานี้", ReturnFactionRank(playerid), ReturnName(playerid, 0));
+			cmd_me(playerid, "วางตราประจำตัวไว้ที่ล็อคเกอร์");
+
+			SetPlayerArmour(playerid, 0);
+			SetPlayerHealth(playerid, 100);
+
+			if(!PlayerInfo[playerid][pAdminDuty])
+			SetPlayerColor(playerid, COLOR_WHITE);
+
+			if(GetPlayerSkin(playerid) != PlayerInfo[playerid][pLastSkin])
+			SetPlayerSkin(playerid, PlayerInfo[playerid][pLastSkin]);
+
+			return 1;
+		}
+	}
+	return SendClientMessage(playerid, COLOR_RED, "ACCESS DENIED:{FFFFFF} คุณไม่ใช่หน่วยงานรัฐบาล"); 
 }
 
 CMD:handcuff(playerid, params[])
@@ -13722,12 +13914,162 @@ stock SendPoliceMessage(color, const str[], {Float,_}:...)
 	}
 	foreach (new i : Player)
 	{
-		if (FactionInfo[PlayerInfo[i][pFaction]][eFactionType] == POLICE) {
+		if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == POLICE) {
 			SendClientMessage(i, color, str);
 		}
 	}
 	return 1;
-} // Credits to Emmet, South Central Roleplay
+}
+
+stock SendSheriffMessage(color, const str[], {Float,_}:...)
+{
+	static
+	    args,
+	    start,
+	    end,
+	    string[144]
+	;
+	#emit LOAD.S.pri 8
+	#emit STOR.pri args
+
+	if (args > 8)
+	{
+		#emit ADDR.pri str
+		#emit STOR.pri start
+
+	    for (end = start + (args - 8); end > start; end -= 4)
+		{
+	        #emit LREF.pri end
+	        #emit PUSH.pri
+		}
+		#emit PUSH.S str
+		#emit PUSH.C 144
+		#emit PUSH.C string
+
+		#emit LOAD.S.pri 8
+		#emit ADD.C 4
+		#emit PUSH.pri
+
+		#emit SYSREQ.C format
+		#emit LCTRL 5
+		#emit SCTRL 4
+
+        foreach (new i : Player)
+		{
+			if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == SHERIFF) {
+  				SendClientMessage(i, color, string);
+			}
+		}
+		return 1;
+	}
+	foreach (new i : Player)
+	{
+		if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == SHERIFF) {
+			SendClientMessage(i, color, str);
+		}
+	}
+	return 1;
+}
+
+stock SendMedicMessage(color, const str[], {Float,_}:...)
+{
+	static
+	    args,
+	    start,
+	    end,
+	    string[144]
+	;
+	#emit LOAD.S.pri 8
+	#emit STOR.pri args
+
+	if (args > 8)
+	{
+		#emit ADDR.pri str
+		#emit STOR.pri start
+
+	    for (end = start + (args - 8); end > start; end -= 4)
+		{
+	        #emit LREF.pri end
+	        #emit PUSH.pri
+		}
+		#emit PUSH.S str
+		#emit PUSH.C 144
+		#emit PUSH.C string
+
+		#emit LOAD.S.pri 8
+		#emit ADD.C 4
+		#emit PUSH.pri
+
+		#emit SYSREQ.C format
+		#emit LCTRL 5
+		#emit SCTRL 4
+
+        foreach (new i : Player)
+		{
+			if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == MEDIC) {
+  				SendClientMessage(i, color, string);
+			}
+		}
+		return 1;
+	}
+	foreach (new i : Player)
+	{
+		if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == MEDIC) {
+			SendClientMessage(i, color, str);
+		}
+	}
+	return 1;
+}
+
+stock SendDOCMessage(color, const str[], {Float,_}:...)
+{
+	static
+	    args,
+	    start,
+	    end,
+	    string[144]
+	;
+	#emit LOAD.S.pri 8
+	#emit STOR.pri args
+
+	if (args > 8)
+	{
+		#emit ADDR.pri str
+		#emit STOR.pri start
+
+	    for (end = start + (args - 8); end > start; end -= 4)
+		{
+	        #emit LREF.pri end
+	        #emit PUSH.pri
+		}
+		#emit PUSH.S str
+		#emit PUSH.C 144
+		#emit PUSH.C string
+
+		#emit LOAD.S.pri 8
+		#emit ADD.C 4
+		#emit PUSH.pri
+
+		#emit SYSREQ.C format
+		#emit LCTRL 5
+		#emit SCTRL 4
+
+        foreach (new i : Player)
+		{
+			if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == DOC) {
+  				SendClientMessage(i, color, string);
+			}
+		}
+		return 1;
+	}
+	foreach (new i : Player)
+	{
+		if (FactionInfo[PlayerInfo[i][pFaction]][eFactionJob] == DOC) {
+			SendClientMessage(i, color, str);
+		}
+	}
+	return 1;
+}
 	
 stock SendUnauthMessage(playerid)
 {
@@ -14357,7 +14699,7 @@ stock ReturnFactionType(playerid)
 	return FactionInfo[PlayerInfo[playerid][pFaction]][eFactionType];
 }
 
-stock ReturnFactioJob(playerid)
+stock ReturnFactionJob(playerid)
 {
 	if(!PlayerInfo[playerid][pFaction])
 		return 0;
